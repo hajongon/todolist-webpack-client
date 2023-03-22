@@ -1,0 +1,8 @@
+.submit-button {
+  width: 80px;
+  height: 30px;
+  font-size: 1rem;
+  background-color: rgb(221, 214, 197);
+  border: 1px solid black;
+  border-radius: 15px;
+}
