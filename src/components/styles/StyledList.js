@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const StyledList = styled.div`
   box-sizing: border-box;
@@ -9,6 +9,6 @@ export const StyledList = styled.div`
   width: 100%;
   margin: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid gray;
-  
+  border-bottom: 1px solid #d8d4cc;
+  cursor: grabbing;
 `;

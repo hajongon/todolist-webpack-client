@@ -5,6 +5,17 @@ import styled from "styled-components";
 
 import "./Submit.css";
 import axios from "axios";
+import { FieldValue } from "firebase/firestore";
+import {
+  Firestore,
+  addDoc,
+  setDoc,
+  getDoc,
+  doc,
+  collection,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { v4 as uuidv4 } from "uuid";
 
 const ToDo = styled.textarea`
   width: 90%;
@@ -17,7 +28,7 @@ const ToDo = styled.textarea`
   padding: 10px 20px 10px 20px;
 `;
 
-const Submit = ({ post, setPost }) => {
+const Submit = ({ post, setPost, firestore }) => {
   const [title, setTitle] = useState("");
 
   const todoHandler = (e) => {
@@ -34,23 +45,29 @@ const Submit = ({ post, setPost }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!title) return;
-    const data = await axios.post("http://localhost:4000/list", {
-      title: title,
-    });
+    if (title.length === 0) return;
 
-    // post 요청에서 새로운 배열을 보내주기 때문에 다시 get할 필요가 없다.
-    
-    // const getPost = async () => {
-    //   const response = await axios.get('http://localhost:4000/list');
-    //   const copy = response.data;
-    //   setPost(copy);
-    // };
-    // getPost();
+    const auth = getAuth();
+    const user = auth.currentUser;
+    const userId = user.uid;
 
-    console.log(data.data);
-    const newPost = data.data;
-    setPost(newPost);
+    // userlist라는 콜렉션 아래 userId doc 아래 todos 라는 문서 참조
+    const todosRef = collection(firestore, "userlist", userId, "todos");
+
+    // 새로운 항목
+    const newTodo = { title: title };
+
+    // 위에서 참조한 todosRef라는 문서에 newTodo 추가
+    const docRef = await addDoc(todosRef, newTodo);
+    const docId = docRef.id;
+
+    // console.log(docId);
+
+    // post 최신화
+    // firestore 항목 id 넣어주기
+    const added = { id: docId, title: title };
+    setPost((prev) => [added, ...prev]);
+    localStorage.setItem("posts", JSON.stringify(post));
     setTitle("");
   };
 
@@ -63,7 +80,7 @@ const Submit = ({ post, setPost }) => {
         placeholder="text here"
         value={title}
       />
-      <button className="tiny-button" type="submit" onClick={handleSubmit}>
+      <button className="submit-button" type="submit" onClick={handleSubmit}>
         add
       </button>
     </StyledSubmit>

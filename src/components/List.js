@@ -1,34 +1,93 @@
+import styled from "styled-components";
 import { StyledList } from "./styles/StyledList";
-import { DeleteButton } from "./DeleteButton";
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPencil } from "@fortawesome/free-solid-svg-icons";
+import {
+  faPencil,
+  faBars,
+  faTrashCan,
+} from "@fortawesome/free-solid-svg-icons";
+import { getAuth } from "firebase/auth";
+import {
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+} from "firebase/firestore";
+
+import firestore from "../firebase";
 
 import "./List.css";
 
-export const List = ({ post, setPost, setBearSmile, setCount }) => {
+const DeleteButton = styled(FontAwesomeIcon)``;
+
+export const List = ({
+  post,
+  setPost,
+  setBearSmile,
+  setCount,
+  userId,
+  todosRef,
+  todos,
+  checkedList,
+  setCheckedList,
+}) => {
   const [isEditing, setIsEditing] = useState("");
   const [editedTitle, setEditedTitle] = useState("");
-  const [checkedList, setCheckedList] = useState([]);
-  
+
+  const [draggingIndex, setDraggingIndex] = useState(null);
+  // 드래그 지나간 자리 표시
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  // const [userId, setUserId] = useState(null);
+  // const [todoRef, setTodoRef] = useState(null);
+
+  // 드래그하고 있는 대상 css 변경
+  // 드래그로 놓을 수 있는 위치 css 변경
+  // 수정 버튼 왼쪽에 햄버거 아이콘 넣어서 드래그할 수 있다는 느낌
+
+  // useEffect(() => {
+  //   const auth = getAuth();
+  //   const user = auth.currentUser;
+  //   const id = user.uid;
+  //   setUserId(id);
+  //   const ref = doc(firestore, "userlist", userId, "todos", id);
+  //   setTodoRef(ref);
+  // });
+
+  useEffect(() => {
+    // 로컬 스토리지에서 checkedList 값을 가져와서 적용
+    const storedCheckedList = localStorage.getItem("checkedList");
+    if (storedCheckedList) {
+      setCheckedList(JSON.parse(storedCheckedList));
+    }
+  }, []);
 
   const handleDragStart = (e, index) => {
     // 드래그 하면 드래그되는 요소의 인덱스를 데이터로 설정한다.
     // "text/plain"은 데이터 타입.
     e.dataTransfer.setData("text/plain", index);
+    // drag하고 있는 요소의 인덱스 추출
+    setDraggingIndex(index);
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, index) => {
     e.preventDefault();
-    console.log(e.target)
+    setDragOverIndex(index);
   };
 
   const handleDrop = async (e, targetIndex) => {
-
+    // 클래스 빼기
+    setDraggingIndex(null);
+    setDragOverIndex(null);
     // 드래그 시에 저장했던 인덱스를 sourceIndex에 할당한다. 타입은 text
     const sourceIndex = Number(e.dataTransfer.getData("text"));
-    
+
     // 원본 배열을 건드리지 않기 위해 copiedPost라는 배열 만들기
     const copiedPost = [...post];
 
@@ -43,36 +102,60 @@ export const List = ({ post, setPost, setBearSmile, setCount }) => {
 
     // 서버에 수정 요청
     const res = await axios.put(
-      `http://localhost:4000/list/${movedPost.id}/move`,
+      `http://15.164.216.204:4000/list/${movedPost.id}/move`,
       {
         targetIndex: targetIndex,
       }
     );
   };
 
-  const checkHandler = async (e, idx, index) => {
-    
-    if(e.target.checked) {
+  const checkHandler = async (e, idx, id) => {
+    // const todosRef = collection(firestore, "userlist", userId, "todos");
+    const todoRef = doc(firestore, "userlist", userId, "todos", id);
+    // console.log(userId);
+    if (e.target.checked) {
       // 카운트 증가
-      setCount((prev) => prev + 1)
+      setCount((prev) => prev + 1);
 
       // 체크했을 때 제일 아래로 내리는 기능
-      const copiedPost = [...post];
+      let copiedPost = [...post];
       const finishedPost = copiedPost.splice(idx, 1)[0];
-      copiedPost.push(finishedPost);
-      
-      // 텀을 둬서 체크 후 내려가는 것 알 수 있게
       setTimeout(() => {
         setPost(copiedPost);
+        setPost((prev) => [...prev, finishedPost]);
       }, 400);
 
+      // 새로고침해도 체크된 것들 기억하도록
+      localStorage.setItem("posts", JSON.stringify(post));
+
+      // copiedPost = [...copiedPost, finishedPost];
+
+      // 텀을 둬서 체크 후 내려가는 것 알 수 있게
+
       // 서버에 put 요청
-      const res = await axios.put(
-        `http://localhost:4000/list/${finishedPost.id}/check`,
-      )
+      // const res = await axios.put(
+      //   `http://15.164.216.204:4000/list/${finishedPost.id}/check`
+      // );
+
+      // await deleteDoc(todoRef);
+      // await addDoc(todosRef, finishedPost);
+
+      // post 최신화
+      // firestore 항목 id 넣어주기
+
+      // setTimeout(() => {
+
+      //   getDocs(todosRef).then((querySnapshot) => {
+      //     const todosArr = querySnapshot.docs.map((doc) => ({
+      //       id: doc.id,
+      //       title: doc.data().title,
+      //     }));
+      //     setPost(todosArr);
+      //   });
+      // }, 400);
 
       // css 변경 위한 state
-      setCheckedList([...checkedList, index]);
+      setCheckedList([...checkedList, id]);
 
       // 곰 웃기
       setBearSmile(true);
@@ -80,33 +163,77 @@ export const List = ({ post, setPost, setBearSmile, setCount }) => {
       setTimeout(() => {
         setBearSmile(false);
       }, 2000);
-
     } else {
+      setCount((prev) => prev - 1);
+      setCheckedList(checkedList.filter((el) => el !== id));
       setBearSmile(false);
-      setCheckedList(checkedList.filter((el) => el !== index));
+      // 체크했을 때 제일 위로 올리는 기능
+      let copiedPost = [...post];
+      const uncheckedPost = copiedPost.splice(idx, 1)[0];
+      copiedPost = [uncheckedPost, ...copiedPost];
+
+      // 텀을 둬서 체크 해제 후 올라가는 것 알 수 있게
+      // setTimeout(() => {
+      //   setPost(copiedPost);
+      // }, 400);
+      // 서버에 put 요청
+      // const res = await axios.put(
+      //   `http://15.164.216.204:4000/list/${finishedPost.id}/check`
+      // );
+
+      await deleteDoc(todoRef);
+      // merge: true를 설정하지 않으면 전체 요소를 대체한다.
+      await setDoc(uncheckedPost, todoRef, { merge: true });
+      setTimeout(() => {
+        const todos = collection(firestore, "userlist", userId, "todos");
+        getDocs(todos).then((querySnapshot) => {
+          const todosArr = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            title: doc.data().title,
+          }));
+          setPost(todosArr);
+        });
+      }, 400);
     }
-    
-  }
+  };
+
+  useEffect(() => {
+    // checkedList 값이 변경될 때마다 로컬 스토리지에 저장
+    // 새로고침하면 왜인진 몰라도 checkedList가 빈 배열이 되는 듯. 빈 배열일 경우 로컬스토리지를 업데이트하지 않도록 한다.
+    if (checkedList.length > 0) {
+      localStorage.setItem("checkedList", JSON.stringify(checkedList));
+    }
+  }, [checkedList]);
 
   return post.map((el, idx) => {
-    const index = el.id;
+    const id = el.id;
     return (
       <StyledList
-        key={el.id}
+        key={id}
         draggable
         onDragStart={(e) => handleDragStart(e, idx)}
-        onDragOver={(e) => handleDragOver(e)}
+        onDragOver={(e) => handleDragOver(e, idx)}
         onDrop={(e) => handleDrop(e, idx)}
-        className={checkedList.includes(index) ? "checked" : ""}
-        
+        // 드래그 하고있는 요소와 놓으려는 위치 요소 클래스 수정
+        className={`
+        ${checkedList.includes(id) ? "checked" : ""} 
+        ${idx === draggingIndex ? "dragging" : ""}
+        ${idx === dragOverIndex ? "dragover" : ""}
+        `}
       >
-        <div className="list__pic--wrapper">
+        <input
+          className="checkbox"
+          type="checkbox"
+          onChange={(e) => checkHandler(e, idx, id)}
+          checked={checkedList.includes(id)}
+        ></input>
+        {/* <div className="list__pic--wrapper">
           <img
             className="list__pic--content"
             src={el.picUrl}
             alt={`puppy`}
           ></img>
-        </div>
+        </div> */}
         <div className="list__content">
           {String(el.id) !== String(isEditing) ? (
             <div className="list__title">{el.title}</div>
@@ -120,9 +247,10 @@ export const List = ({ post, setPost, setBearSmile, setCount }) => {
                 <OkButton
                   post={post}
                   setPost={setPost}
-                  index={index}
+                  id={id}
                   setIsEditing={setIsEditing}
                   editedTitle={editedTitle}
+                  userId={userId}
                 />
                 <CancelButton setIsEditing={setIsEditing} />
               </div>
@@ -131,27 +259,42 @@ export const List = ({ post, setPost, setBearSmile, setCount }) => {
         </div>
 
         {!isEditing ? (
-          <>
+          <div className="edit-delete-container">
             {" "}
             <EditIcon
+              className="butbut"
               post={post}
-              index={index}
+              id={id}
               setIsEditing={setIsEditing}
               setEditedTitle={setEditedTitle}
             />
-            <DeleteButton post={[post]} setPost={setPost} index={index} />
-            <input className="checkbox" type="checkbox" onChange={(e)=>checkHandler(e, idx, index)}></input>
-          </>
+            <DeleteIcon
+              className="butbut"
+              post={post}
+              userId={userId}
+              setPost={setPost}
+              todosRef={todosRef}
+              id={id}
+            />
+            {/* <button onClick={() => handleDelete(id)}>
+              <DeleteButton
+                icon={faTrashCan}
+                className="butbut"
+                // 여기서 id를 내려주는데 왜 버튼 눌렀을 때 id를 찍어보면 모든 요소의 id가 나올까?
+                id={id}
+              ></DeleteButton>
+            </button> */}
+          </div>
         ) : null}
       </StyledList>
     );
   });
 };
 
-const EditIcon = ({ post, index, setIsEditing, setEditedTitle }) => {
+const EditIcon = ({ post, id, setIsEditing, setEditedTitle }) => {
   const handleClick = () => {
-    const listIndex = post.findIndex((el) => String(el.id) === String(index));
-    setIsEditing(index);
+    const listIndex = post.findIndex((el) => String(el.id) === String(id));
+    setIsEditing(id);
     setEditedTitle(post[listIndex].title);
   };
 
@@ -164,16 +307,43 @@ const EditIcon = ({ post, index, setIsEditing, setEditedTitle }) => {
   );
 };
 
+const DeleteIcon = ({ userId, setPost, id }) => {
+  const handleDelete = async () => {
+    // firestore에 새로운 doc을 추가하면 그 항목의 id가 자동 생성되고,
+    // 삭제나 수정을 하려면 그 id를 사용해야만 한다.
+    const todoRef = doc(firestore, "userlist", userId, "todos", id);
+    await deleteDoc(todoRef);
+    setPost((prevPost) => prevPost.filter((item) => item.id !== id));
+  };
+
+  return (
+    <FontAwesomeIcon
+      className="fa-trash-can"
+      icon={faTrashCan}
+      onClick={handleDelete}
+    />
+  );
+};
+
 const EditArea = ({ value, onChange }) => {
   return <input className="edit-area" value={value} onChange={onChange} />;
 };
 
-const OkButton = ({ setPost, index, editedTitle, setIsEditing }) => {
+const OkButton = ({ userId, post, setPost, id, editedTitle, setIsEditing }) => {
   const handleEdit = async () => {
-    const res = await axios.put(`http://localhost:4000/list/${index}`, {
-      title: editedTitle,
-    });
-    setPost(res.data);
+    // const res = await axios.put(`http://15.164.216.204:4000/list/${id}`, {
+    //   title: editedTitle,
+    // });
+    // setPost(res.data);
+    // setIsEditing("");
+
+    const todoRef = doc(firestore, "userlist", userId, "todos", id);
+    await updateDoc(todoRef, { title: editedTitle });
+    const updatedPost = post.map((el) =>
+      // 객체 변화 줄 때 방식 외워라 그냥 모르겠으면 이 놈아
+      String(el.id) === String(id) ? { ...el, title: editedTitle } : el
+    );
+    setPost(updatedPost);
     setIsEditing("");
   };
 

@@ -5,4 +5,10 @@
   background-color: rgb(221, 214, 197);
   border: 1px solid black;
   border-radius: 15px;
+  cursor: pointer;
+  color: black;
+}
+
+.submit-button:hover {
+  background-color: #c3bfb4;
 }
