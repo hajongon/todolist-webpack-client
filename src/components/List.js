@@ -4,21 +4,9 @@ import { StyledList } from "./styles/StyledList";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faPencil,
-  faBars,
-  faTrashCan,
-} from "@fortawesome/free-solid-svg-icons";
-import { getAuth } from "firebase/auth";
-import {
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-} from "firebase/firestore";
+import { faPencil, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+
+import { updateDoc, deleteDoc, doc } from "firebase/firestore";
 
 import firestore from "../firebase";
 
@@ -30,17 +18,14 @@ export const List = ({
   post,
   setPost,
   setBearSmile,
-  count,
   setCount,
   userId,
   todosRef,
-  todos,
   checkedList,
   setCheckedList,
 }) => {
   const [isEditing, setIsEditing] = useState("");
   const [editedTitle, setEditedTitle] = useState("");
-
   const [draggingIndex, setDraggingIndex] = useState(null);
   // 드래그 지나간 자리 표시
   const [dragOverIndex, setDragOverIndex] = useState(null);
