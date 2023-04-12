@@ -2,7 +2,11 @@ import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { useNavigate } from "react-router-dom";
+import googleButton from "./assets/btn_google_signin_light_normal_web@2x.png";
 import "./index.css";
+import "./login.css";
+import Header from "./components/Header";
+import bearImg from "../public/bearcrop.png";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -37,7 +41,7 @@ const Login = () => {
         const token = credential.accessToken;
         // The signed-in user info.
         const user = result.user;
-        console.log(user);
+        // console.log(user);
         // IdP data available using getAdditionalUserInfo(result)
         // ...
         navigate("/app");
@@ -57,9 +61,13 @@ const Login = () => {
 
   return (
     <div className="login-page">
-      <button onClick={handleSignInWithGoogle} className="google-login">
-        google 계정으로 로그인
-      </button>
+      <Header />
+      <img className="bear" src={bearImg} alt="bear" />
+      <img
+        src={googleButton}
+        onClick={handleSignInWithGoogle}
+        className="google-login"
+      />
     </div>
   );
 };

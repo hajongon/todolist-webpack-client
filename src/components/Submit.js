@@ -1,5 +1,5 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StyledSubmit } from "./styles/StyledSubmit";
 import styled from "styled-components";
 
@@ -67,13 +67,17 @@ const Submit = ({ post, setPost, firestore }) => {
     // firestore 항목 id 넣어주기
     const added = { id: docId, title: title };
     setPost((prev) => [added, ...prev]);
-    localStorage.setItem("posts", JSON.stringify(post));
+
     setTitle("");
   };
 
+  useEffect(() => {
+    localStorage.setItem("posts", JSON.stringify(post));
+  }, [post]);
+
   return (
     <StyledSubmit onSubmit={handleSubmit}>
-      <div>What do you wanna do?</div>
+      <div>What do you want to do?</div>
       <ToDo
         onChange={todoHandler}
         onKeyDown={handleKeyDown}

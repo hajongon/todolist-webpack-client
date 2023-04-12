@@ -13,27 +13,18 @@ import axios from "axios";
 
 import { useState, useEffect } from "react";
 
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  Query,
-  where,
-  onSnapshot,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  QuerySnapshot,
-} from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 function AppPage() {
-  const [post, setPost] = useState([]);
-
+  // useState를 애초에 로컬스토리지로 초기화
+  const [post, setPost] = useState(
+    () => JSON.parse(window.localStorage.getItem("posts")) || []
+  );
   const [bearSmile, setBearSmile] = useState(false);
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(
+    () => JSON.parse(window.localStorage.getItem("count")) || 0
+  );
 
   // firestore
 
@@ -55,9 +46,17 @@ function AppPage() {
 
   const [userId, setUserId] = useState(null);
   const [todosRef, setTodosRef] = useState(null);
-  const [checkedList, setCheckedList] = useState([]);
+  const [checkedList, setCheckedList] = useState(
+    () => JSON.parse(window.localStorage.getItem("checkedList")) || []
+  );
 
   useEffect(() => {
+    const storedCount = localStorage.getItem("count");
+    setCount(Number(storedCount));
+  }, []);
+
+  useEffect(() => {
+    // count 불러오기
     const auth = getAuth();
     auth.onAuthStateChanged((user) => {
       // console.log(post);
@@ -77,7 +76,7 @@ function AppPage() {
           } else {
             const ref = collection(userDocRef, "todos");
             setTodosRef(ref);
-            // 변경한 state를 바로 밑에서 사용하면 안 먹히지
+            // 변경한 state를 바로 밑에서 사용하면 안 먹힘
             getDocs(ref).then((querySnapshot) => {
               const todos = querySnapshot.docs.map((doc) => ({
                 // 렌더링 때도 firestore id를 넣어줘야 함
@@ -86,23 +85,31 @@ function AppPage() {
               }));
 
               // 로컬스토리지 체크리스트 불러옴
-              const storedCheckedList = localStorage.getItem("checkedList");
-              const checked = JSON.parse(storedCheckedList);
-              // 빈 배열 만들어서 체크된 애들 push
-              const checkedArr = [];
-              todos.forEach((el, idx) => {
-                if (checked.includes(el.id)) {
-                  checkedArr.push(el);
-                }
-              });
-              // todosArr에서 체크 된 애들 다 빼버리고
-              // 체크된 애들만 모아놓은 배열과 합침
-              // => 체크된 애들이 뒤로감
-              const todosArr = todos
-                .filter((el) => !checked.includes(el.id))
-                .concat(checkedArr);
-              // 이전의 데이터를 모두 지우고 새로운 데이터를 설정합니다.
-              setPost(todosArr);
+              // const storedCheckedList = localStorage.getItem("checkedList");
+              // if (storedCheckedList) {
+              //   const checked = JSON.parse(storedCheckedList);
+              //   // 빈 배열 만들어서 체크된 애들 push
+              //   const checkedArr = [];
+              //   todos.forEach((el) => {
+              //     if (checked.includes(el.id)) {
+              //       checkedArr.push(el);
+              //     }
+              //   });
+              //   // todosArr에서 체크 된 애들 다 빼버리고
+              //   // 체크된 애들만 모아놓은 배열과 합침
+              //   // => 체크된 애들이 뒤로감
+              //   const todosArr = todos
+              //     .filter((el) => !checked.includes(el.id))
+              //     .concat(checkedArr);
+
+              //   setPost(todosArr);
+              // }
+
+              // 로컬스토리지에 이미 posts가 있으면 그거 그대로 쓰고
+
+              if (!post.length) {
+                setPost(todos);
+              }
             });
           }
         });
@@ -110,6 +117,15 @@ function AppPage() {
     });
     // 의존성 배열에서 post를 제거하니까 key값에 firestore id가 들어감
   }, []);
+
+  useEffect(() => {
+    // checkedList 값이 변경될 때마다 로컬 스토리지에 저장
+    // 새로고침하면 왜인진 몰라도 checkedList가 빈 배열이 되는 듯. 빈 배열일 경우 로컬스토리지를 업데이트하지 않도록 한다.
+    if (checkedList.length > 0) {
+      localStorage.setItem("checkedList", JSON.stringify(checkedList));
+    }
+    localStorage.setItem("count", count);
+  }, [checkedList]);
 
   const resetHandler = () => {
     setCount(0);
@@ -143,6 +159,7 @@ function AppPage() {
         setCount={setCount}
         checkedList={checkedList}
         setCheckedList={setCheckedList}
+        count={count}
       />
     </StyledScreen>
   );

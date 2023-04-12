@@ -13,6 +13,7 @@ const Lists = ({
   userId,
   checkedList,
   setCheckedList,
+  count,
 }) => {
   return (
     <StyledLists>
@@ -27,6 +28,7 @@ const Lists = ({
         setCount={setCount}
         checkedList={checkedList}
         setCheckedList={setCheckedList}
+        count={count}
       ></List>
     </StyledLists>
   );

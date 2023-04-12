@@ -30,6 +30,7 @@ export const List = ({
   post,
   setPost,
   setBearSmile,
+  count,
   setCount,
   userId,
   todosRef,
@@ -101,21 +102,24 @@ export const List = ({
     setPost(copiedPost);
 
     // 서버에 수정 요청
-    const res = await axios.put(
-      `http://15.164.216.204:4000/list/${movedPost.id}/move`,
-      {
-        targetIndex: targetIndex,
-      }
-    );
+    // const res = await axios.put(
+    //   `http://15.164.216.204:4000/list/${movedPost.id}/move`,
+    //   {
+    //     targetIndex: targetIndex,
+    //   }
+    // );
   };
 
   const checkHandler = async (e, idx, id) => {
     // const todosRef = collection(firestore, "userlist", userId, "todos");
-    const todoRef = doc(firestore, "userlist", userId, "todos", id);
+
     // console.log(userId);
     if (e.target.checked) {
       // 카운트 증가
-      setCount((prev) => prev + 1);
+
+      await setCount((prev) => +prev + 1);
+      // css 변경 위한 state
+      setCheckedList([...checkedList, id]);
 
       // 체크했을 때 제일 아래로 내리는 기능
       let copiedPost = [...post];
@@ -126,36 +130,7 @@ export const List = ({
       }, 400);
 
       // 새로고침해도 체크된 것들 기억하도록
-      localStorage.setItem("posts", JSON.stringify(post));
-
-      // copiedPost = [...copiedPost, finishedPost];
-
-      // 텀을 둬서 체크 후 내려가는 것 알 수 있게
-
-      // 서버에 put 요청
-      // const res = await axios.put(
-      //   `http://15.164.216.204:4000/list/${finishedPost.id}/check`
-      // );
-
-      // await deleteDoc(todoRef);
-      // await addDoc(todosRef, finishedPost);
-
-      // post 최신화
-      // firestore 항목 id 넣어주기
-
-      // setTimeout(() => {
-
-      //   getDocs(todosRef).then((querySnapshot) => {
-      //     const todosArr = querySnapshot.docs.map((doc) => ({
-      //       id: doc.id,
-      //       title: doc.data().title,
-      //     }));
-      //     setPost(todosArr);
-      //   });
-      // }, 400);
-
-      // css 변경 위한 state
-      setCheckedList([...checkedList, id]);
+      // localStorage.setItem("posts", JSON.stringify(post));
 
       // 곰 웃기
       setBearSmile(true);
@@ -164,46 +139,23 @@ export const List = ({
         setBearSmile(false);
       }, 2000);
     } else {
-      setCount((prev) => prev - 1);
+      setCount((prev) => +prev - 1);
       setCheckedList(checkedList.filter((el) => el !== id));
       setBearSmile(false);
       // 체크했을 때 제일 위로 올리는 기능
       let copiedPost = [...post];
       const uncheckedPost = copiedPost.splice(idx, 1)[0];
-      copiedPost = [uncheckedPost, ...copiedPost];
 
-      // 텀을 둬서 체크 해제 후 올라가는 것 알 수 있게
-      // setTimeout(() => {
-      //   setPost(copiedPost);
-      // }, 400);
-      // 서버에 put 요청
-      // const res = await axios.put(
-      //   `http://15.164.216.204:4000/list/${finishedPost.id}/check`
-      // );
-
-      await deleteDoc(todoRef);
-      // merge: true를 설정하지 않으면 전체 요소를 대체한다.
-      await setDoc(uncheckedPost, todoRef, { merge: true });
       setTimeout(() => {
-        const todos = collection(firestore, "userlist", userId, "todos");
-        getDocs(todos).then((querySnapshot) => {
-          const todosArr = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            title: doc.data().title,
-          }));
-          setPost(todosArr);
-        });
+        setPost(copiedPost);
+        setPost((prev) => [uncheckedPost, ...prev]);
       }, 400);
     }
   };
 
   useEffect(() => {
-    // checkedList 값이 변경될 때마다 로컬 스토리지에 저장
-    // 새로고침하면 왜인진 몰라도 checkedList가 빈 배열이 되는 듯. 빈 배열일 경우 로컬스토리지를 업데이트하지 않도록 한다.
-    if (checkedList.length > 0) {
-      localStorage.setItem("checkedList", JSON.stringify(checkedList));
-    }
-  }, [checkedList]);
+    localStorage.setItem("posts", JSON.stringify(post));
+  }, [post]);
 
   return post.map((el, idx) => {
     const id = el.id;
@@ -311,9 +263,9 @@ const DeleteIcon = ({ userId, setPost, id }) => {
   const handleDelete = async () => {
     // firestore에 새로운 doc을 추가하면 그 항목의 id가 자동 생성되고,
     // 삭제나 수정을 하려면 그 id를 사용해야만 한다.
+    setPost((prevPost) => prevPost.filter((item) => item.id !== id));
     const todoRef = doc(firestore, "userlist", userId, "todos", id);
     await deleteDoc(todoRef);
-    setPost((prevPost) => prevPost.filter((item) => item.id !== id));
   };
 
   return (
@@ -337,14 +289,15 @@ const OkButton = ({ userId, post, setPost, id, editedTitle, setIsEditing }) => {
     // setPost(res.data);
     // setIsEditing("");
 
-    const todoRef = doc(firestore, "userlist", userId, "todos", id);
-    await updateDoc(todoRef, { title: editedTitle });
     const updatedPost = post.map((el) =>
       // 객체 변화 줄 때 방식 외워라 그냥 모르겠으면 이 놈아
       String(el.id) === String(id) ? { ...el, title: editedTitle } : el
     );
     setPost(updatedPost);
     setIsEditing("");
+
+    const todoRef = doc(firestore, "userlist", userId, "todos", id);
+    await updateDoc(todoRef, { title: editedTitle });
   };
 
   return (
